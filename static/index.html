@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AigenticPay | Secure Smart Payment Gateway</title>
+    <meta name="description"
+        content="Next-gen self-managed payment gateway with identity verification, limit management, and merchant whitelisting.">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- 登录/注册页面 -->
+        <section id="auth-page" class="page active">
+            <div class="glass-card auth-card">
+                <div class="brand">
+                    <i class="fas fa-microchip logo-icon"></i>
+                    <h1>AigenticPay</h1>
+                </div>
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="login">Login</button>
+                    <button class="tab-btn" data-tab="register">Register</button>
+                </div>
+                <div id="login-form" class="auth-form active">
+                    <div class="input-group">
+                        <label><i class="fas fa-envelope"></i> Email</label>
+                        <input type="email" id="login-email" placeholder="name@example.com" required>
+                    </div>
+                    <div class="input-group">
+                        <label><i class="fas fa-lock"></i> Password</label>
+                        <input type="password" id="login-password" placeholder="••••••••" required>
+                    </div>
+                    <button id="login-submit" class="primary-btn">Sign In</button>
+                </div>
+                <div id="register-form" class="auth-form">
+                    <div class="input-group">
+                        <label><i class="fas fa-envelope"></i> Email</label>
+                        <input type="email" id="register-email" placeholder="name@example.com" required>
+                    </div>
+                    <div class="input-group">
+                        <label><i class="fas fa-lock"></i> Password</label>
+                        <input type="password" id="register-password" placeholder="••••••••" required>
+                    </div>
+                    <button id="register-submit" class="primary-btn">Create Account</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 管理后台页面 -->
+        <section id="dashboard-page" class="page">
+            <nav class="navbar">
+                <div class="nav-brand">
+                    <i class="fas fa-microchip"></i>
+                    <span>AigenticPay</span>
+                </div>
+                <div class="nav-user">
+                    <span id="user-display-email"></span>
+                    <button id="logout-btn" class="icon-btn" title="Sign Out"><i
+                            class="fas fa-sign-out-alt"></i></button>
+                </div>
+            </nav>
+
+            <main class="dashboard-content">
+                <div class="grid-layout">
+                    <!-- 余额与充值 -->
+                    <div class="glass-card balance-card">
+                        <div class="card-header">
+                            <span class="label">Current Balance</span>
+                            <i class="fas fa-wallet icon"></i>
+                        </div>
+                        <div class="balance-amount">
+                            <span class="currency">$</span>
+                            <span id="user-balance">0.00</span>
+                        </div>
+                        <div class="card-footer">
+                            <button id="open-deposit-modal" class="secondary-btn"><i class="fas fa-plus"></i> Quick
+                                Deposit</button>
+                        </div>
+                    </div>
+
+                    <!-- 规则设置 -->
+                    <div class="glass-card rules-card">
+                        <h3>Spending Rules</h3>
+                        <div class="input-group">
+                            <label>Max Daily Spending ($)</label>
+                            <div class="input-with-btn">
+                                <input type="number" id="daily-limit-input" value="1000.00">
+                                <button id="save-limit-btn" class="mini-btn">Save</button>
+                            </div>
+                            <p class="hint">Gateway will block requests exceeding this daily total.</p>
+                        </div>
+                    </div>
+
+                    <!-- 白名单管理 -->
+                    <div class="glass-card whitelist-card full-width">
+                        <h3>Merchant Whitelist & Individual Limits</h3>
+                        <div class="whitelist-form">
+                            <div class="input-row">
+                                <input type="text" id="new-merchant-input" placeholder="Merchant Name (e.g. Steam)">
+                                <input type="number" id="new-merchant-limit" placeholder="Max per Transaction ($)"
+                                    value="500.00">
+                                <button id="add-merchant-btn" class="primary-btn">Add Merchant</button>
+                            </div>
+                        </div>
+                        <div id="whitelist-tags" class="tag-container">
+                            <!-- Dynamic Load -->
+                        </div>
+                    </div>
+
+                    <!-- 交易记录 -->
+                    <div class="glass-card history-card full-width">
+                        <h3>Audit Logs</h3>
+                        <div class="table-container">
+                            <table id="transaction-table">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Type</th>
+                                        <th>Merchant</th>
+                                        <th>Amount</th>
+                                        <th>Request ID</th>
+                                        <th>Transaction ID</th>
+                                        <th>Order ID</th>
+                                        <th>Failed Reason</th>
+                                    </tr>
+                                    <tr class="filter-row">
+                                        <th><input type="text" class="table-filter" data-col="timestamp"
+                                                placeholder="Filter..."></th>
+                                        <th><input type="text" class="table-filter" data-col="type"
+                                                placeholder="Filter..."></th>
+                                        <th><input type="text" class="table-filter" data-col="merchant"
+                                                placeholder="Filter..."></th>
+                                        <th><input type="text" class="table-filter" data-col="amount"
+                                                placeholder="Filter..."></th>
+                                        <th><input type="text" class="table-filter" data-col="request_id"
+                                                placeholder="Filter..."></th>
+                                        <th><input type="text" class="table-filter" data-col="id"
+                                                placeholder="Filter..."></th>
+                                        <th><input type="text" class="table-filter" data-col="order_id"
+                                                placeholder="Filter..."></th>
+                                        <th><input type="text" class="table-filter" data-col="failed_reason"
+                                                placeholder="Filter..."></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamic Load -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </section>
+
+        <!-- AI Agent Simulator -->
+        <div id="gateway-sim-btn" class="sim-toggle" title="AI Agent Simulator">
+            <i class="fas fa-robot"></i>
+        </div>
+        <div id="gateway-simulator" class="glass-card sim-panel chat-mode">
+            <div class="panel-header">
+                <h3>AI Agent Simulator</h3>
+                <button id="close-sim" class="close-btn">&times;</button>
+            </div>
+            <div id="chat-messages" class="chat-container">
+                <div class="message system">
+                    Welcome to AigenticPay. Just tell me what you need, and I'll handle the payment within your rules.
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="e.g. Buy a pair of Nike Air Force...">
+                <button id="chat-send-btn" class="icon-btn"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deposit Modal -->
+    <div id="deposit-modal" class="modal">
+        <div class="modal-content glass-card">
+            <h3>Quick Account Deposit</h3>
+            <div class="input-group">
+                <label>Deposit Amount ($)</label>
+                <input type="number" id="deposit-amount" placeholder="Enter amount">
+            </div>
+            <div class="modal-actions">
+                <button id="cancel-deposit" class="text-btn">Cancel</button>
+                <button id="confirm-deposit" class="primary-btn">Confirm Deposit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Modal -->
+    <div class="modal" id="confirm-modal">
+        <div class="glass-card modal-content" style="text-align: center;">
+            <h3>Confirmation Required</h3>
+            <p id="confirm-message" style="margin: 1rem 0; color: var(--text-dim);"></p>
+            <div class="input-group" style="flex-direction: row; justify-content: center; gap: 1rem;">
+                <button id="confirm-cancel-btn" class="secondary-btn">No, Cancel</button>
+                <button id="confirm-ok-btn" class="primary-btn">Yes, Update</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+
+</html>

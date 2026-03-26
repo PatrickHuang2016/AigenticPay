@@ -1,0 +1,14 @@
+ERROR: 审计记录上链失败: 区块链交易执行被回退 (Reverted). TX Hash: 0xe21b1c568ecbf074f7d408f58a7e786163a97e276628740ce02d9e807637919b
+Traceback (most recent call last):
+  File "C:\Users\robb1\.gemini\antigravity\workspaces\AigenticPay\app\audit_manager.py", line 102, in upload_audit_record
+    raise Exception(f"区块链交易执行被回退 (Reverted). TX Hash: {tx_hash_hex}")
+Exception: 区块链交易执行被回退 (Reverted). TX Hash: 0xe21b1c568ecbf074f7d408f58a7e786163a97e276628740ce02d9e807637919b
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\robb1\.gemini\antigravity\workspaces\AigenticPay\test_audit.py", line 8, in <module>
+    res = audit.upload_audit_record('test@test.com', '{"amount":1}')
+  File "C:\Users\robb1\.gemini\antigravity\workspaces\AigenticPay\app\audit_manager.py", line 109, in upload_audit_record
+    raise Exception(f"审计记录上链失败: {e}")
+Exception: 审计记录上链失败: 区块链交易执行被回退 (Reverted). TX Hash: 0xe21b1c568ecbf074f7d408f58a7e786163a97e276628740ce02d9e807637919b
