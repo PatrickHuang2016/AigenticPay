@@ -51,6 +51,7 @@ class Transaction(Base):
     request_id = Column(String, nullable=True) 
     order_id = Column(String, nullable=True)
     failed_reason = Column(String, nullable=True)
+    onchain_hash = Column(String, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
     owner = relationship("User", back_populates="transactions")

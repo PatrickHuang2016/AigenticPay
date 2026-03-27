@@ -60,6 +60,7 @@ class Transaction(TransactionBase):
     request_id: Optional[str] = None
     order_id: Optional[str] = None
     failed_reason: Optional[str] = None
+    onchain_hash: Optional[str] = None
     timestamp: datetime
 
     class Config:

@@ -291,6 +291,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td style="font-size:0.8rem; font-family:monospace">${t.id || '-'}</td>
                 <td style="font-size:0.8rem; font-family:monospace">${t.order_id || '-'}</td>
                 <td style="font-size:0.85rem; color:var(--text-dim)">${t.failed_reason || '-'}</td>
+                <td style="font-size:0.8rem; font-family:monospace">${t.onchain_hash 
+                    ? `<a href="https://juicy-low-small-testnet.explorer.testnet.skalenodes.com/tx/${t.onchain_hash}" target="_blank" style="color:var(--primary); text-decoration:none;">${t.onchain_hash.substring(0, 10)}...</a>` 
+                    : '<span style="color:var(--text-dim)"> - </span>'}</td>
             `;
             transactionTable.appendChild(row);
         });

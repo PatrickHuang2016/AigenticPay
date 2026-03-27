@@ -52,7 +52,7 @@ class AuditManager:
             )
 
 
-    def upload_audit_record(self, user_email: str, transaction_json: str):
+    def upload_audit_record(self, user_email: str, transaction_json: str, transaction_id: int = None):
         """将交易记录发布到 SKALE 合约并通过本地数据库持久化"""
         if not self.private_key:
             raise ValueError("本地未配置私钥，无法发布交易审计链上记录。")
@@ -117,6 +117,10 @@ class AuditManager:
                 tx_hash=tx_hash_hex
             )
             self.db.add(audit_record)
+            if transaction_id:
+                tx = self.db.query(self.models.Transaction).filter(self.models.Transaction.id == transaction_id).first()
+                if tx:
+                    tx.onchain_hash = tx_hash_hex
             self.db.commit()
             self.db.refresh(audit_record)
             return audit_record

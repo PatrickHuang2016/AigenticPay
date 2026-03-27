@@ -50,14 +50,14 @@ app.add_middleware(
 
 # --- 辅助函数 ---
 
-def perform_onchain_audit(user_email: str, tx_data: dict):
+def perform_onchain_audit(user_email: str, tx_data: dict, transaction_id: int = None):
     """在后台执行上链审计，不阻塞主接口响应。"""
     from .database import SessionLocal
     db = SessionLocal()
     try:
         audit = AuditManager(db)
         # 将交易字典转为 JSON 字符串上传
-        audit.upload_audit_record(user_email, json.dumps(tx_data, default=str))
+        audit.upload_audit_record(user_email, json.dumps(tx_data, default=str), transaction_id)
     except Exception as e:
         import logging
         logging.error(f"Background audit failed for {user_email}: {e}")
@@ -225,7 +225,8 @@ async def deposit_funds(
     background_tasks.add_task(
         perform_onchain_audit, 
         current_user.email, 
-        {"type": "deposit", "amount": request.amount, "timestamp": datetime.utcnow()}
+        {"type": "deposit", "amount": request.amount, "timestamp": datetime.utcnow()},
+        transaction.id
     )
 
     return current_user
@@ -329,7 +330,8 @@ async def process_payment(
                 "amount": payment.amount, 
                 "order_id": ord_id,
                 "request_id": req_id
-            }
+            },
+            transaction.id
         )
 
         return schemas.PaymentResponse(
