@@ -13,16 +13,22 @@ from pydantic import BaseModel, EmailStr
 class UserBase(BaseModel):
     email: EmailStr
 
-class UserCreate(UserBase):
+class UserLogin(UserBase):
     password: str
+
+class UserCreate(UserLogin):
+    address: str
 
 class UserUpdate(BaseModel):
     daily_limit: Optional[float] = None
+    virtual_card_enabled: Optional[bool] = None
 
 class User(UserBase):
     id: int
     balance: float
     daily_limit: float
+    address: Optional[str] = None
+    virtual_card_enabled: bool = False
 
     class Config:
         from_attributes = True
@@ -61,6 +67,7 @@ class Transaction(TransactionBase):
     order_id: Optional[str] = None
     failed_reason: Optional[str] = None
     onchain_hash: Optional[str] = None
+    virtual_card_number: Optional[str] = None
     timestamp: datetime
 
     class Config:
@@ -79,6 +86,10 @@ class PaymentResponse(BaseModel):
     request_id: Optional[str] = None
     transaction_id: Optional[int] = None
     order_id: Optional[str] = None
+    virtual_card_number: Optional[str] = None
+    exp_date: Optional[str] = None
+    cvv: Optional[str] = None
+    billing_address: Optional[str] = None
 
 # --- 其他 ---
 

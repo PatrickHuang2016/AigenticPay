@@ -5,7 +5,7 @@
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Table
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Table, Boolean
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -16,6 +16,8 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
+    address = Column(String, nullable=True)
+    virtual_card_enabled = Column(Boolean, default=False)
     
     # 账户余额
     balance = Column(Float, default=0.0)
@@ -52,6 +54,7 @@ class Transaction(Base):
     order_id = Column(String, nullable=True)
     failed_reason = Column(String, nullable=True)
     onchain_hash = Column(String, nullable=True)
+    virtual_card_number = Column(String, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
     owner = relationship("User", back_populates="transactions")

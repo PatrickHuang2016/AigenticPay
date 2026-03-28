@@ -97,12 +97,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!email || !password) return alert('Please fill in all fields');
 
+        const bodyData = { email, password };
+        if (action === 'register') {
+            const address = document.getElementById('register-address').value;
+            if (!address) return alert('Please enter your billing address');
+            bodyData.address = address;
+        }
+
         try {
             const endpoint = action === 'login' ? '/api/token' : '/api/register';
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify(bodyData)
             });
 
             const data = await response.json();
@@ -164,7 +171,17 @@ document.addEventListener('DOMContentLoaded', () => {
         userEmailText.textContent = data.email;
         dailyLimitInput.value = data.daily_limit;
 
-        // sim-identity was removed in favor of chat interface
+        const vcardToggle = document.getElementById('vcard-toggle');
+        if (vcardToggle) {
+            vcardToggle.checked = data.virtual_card_enabled;
+            vcardToggle.onchange = async (e) => {
+                const res = await apiFetch('/api/rules', {
+                    method: 'PUT',
+                    body: JSON.stringify({ virtual_card_enabled: e.target.checked })
+                });
+                if (!res.ok) alert('Failed to update virtual card settings');
+            };
+        }
     }
 
     async function loadWhitelist() {
@@ -291,6 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td style="font-size:0.8rem; font-family:monospace">${t.id || '-'}</td>
                 <td style="font-size:0.8rem; font-family:monospace">${t.order_id || '-'}</td>
                 <td style="font-size:0.85rem; color:var(--text-dim)">${t.failed_reason || '-'}</td>
+                <td style="font-size:0.8rem; font-family:monospace; font-weight:600; color:var(--primary)">${t.virtual_card_number ? '**** ' + t.virtual_card_number.slice(-4) : '<span style="color:var(--text-dim)">-</span>'}</td>
                 <td style="font-size:0.8rem; font-family:monospace">${t.onchain_hash 
                     ? `<a href="https://juicy-low-small-testnet.explorer.testnet.skalenodes.com/tx/${t.onchain_hash}" target="_blank" style="color:var(--primary); text-decoration:none;">${t.onchain_hash.substring(0, 10)}...</a>` 
                     : '<span style="color:var(--text-dim)"> - </span>'}</td>

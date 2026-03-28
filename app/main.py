@@ -68,7 +68,7 @@ def perform_onchain_audit(user_email: str, tx_data: dict, transaction_id: int = 
 
 @app.post("/api/token", response_model=schemas.Token, tags=["Authentication"])
 async def login_for_access_token(
-    form_data: schemas.UserCreate, # 这里简化处理，直接用 UserCreate 结构
+    form_data: schemas.UserLogin, # 这里使用新的 UserLogin 而不是带有 address 的 UserCreate
     db: Session = Depends(get_db)
 ):
     """用户登录获取令牌。"""
@@ -93,6 +93,8 @@ async def register_user(user: schemas.UserCreate, db: Session = Depends(get_db))
     new_user = models.User(
         email=user.email,
         hashed_password=hashed_password,
+        address=user.address,
+        virtual_card_enabled=False,
         balance=0.0,
         daily_limit=1000.0
     )
@@ -117,6 +119,8 @@ async def update_rules(
     """更新支付规则（如日限额）。"""
     if rules.daily_limit is not None:
         current_user.daily_limit = rules.daily_limit
+    if rules.virtual_card_enabled is not None:
+        current_user.virtual_card_enabled = rules.virtual_card_enabled
     db.commit()
     return current_user
     
@@ -271,7 +275,8 @@ async def process_payment(
             status=status,
             request_id=req_id,
             order_id=order_id,
-            failed_reason=failed_reason
+            failed_reason=failed_reason,
+            virtual_card_number=None
         )
         db.add(new_tx)
         db.commit()
@@ -317,8 +322,35 @@ async def process_payment(
     # 6. Execute Payment (Atomic)
     try:
         ord_id = "ORD-" + str(random.randint(100000, 999999))
+        
+        # Virtual Card generation
+        vcard_num = None
+        exp_date = None
+        cvv = None
+        billing_addr = None
+
+        if user.virtual_card_enabled:
+            vcard_num = f"4111 {random.randint(1000, 9999)} {random.randint(1000, 9999)} {random.randint(1000, 9999)}"
+            exp_date = f"{datetime.now().month:02d}/{(datetime.now().year + 3) % 100:02d}"
+            cvv = f"{random.randint(100, 999):03d}"
+            billing_addr = user.address
+
         user.balance -= payment.amount
-        transaction = log_tx("success", "Payment successful", order_id=ord_id)
+        
+        # Insert success manually to attach virtual_card_number
+        transaction = models.Transaction(
+            user_id=user.id,
+            merchant_name=payment.merchant_name,
+            amount=payment.amount,
+            type="payment",
+            status="success",
+            request_id=req_id,
+            order_id=ord_id,
+            virtual_card_number=vcard_num
+        )
+        db.add(transaction)
+        db.commit()
+        db.refresh(transaction)
         
         # 触发审计上链
         background_tasks.add_task(
@@ -339,7 +371,11 @@ async def process_payment(
             message="Payment successful",
             request_id=req_id,
             transaction_id=transaction.id,
-            order_id=ord_id
+            order_id=ord_id,
+            virtual_card_number=vcard_num,
+            exp_date=exp_date,
+            cvv=cvv,
+            billing_address=billing_addr
         )
     except Exception as e:
         db.rollback()

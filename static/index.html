@@ -47,6 +47,10 @@
                         <label><i class="fas fa-lock"></i> Password</label>
                         <input type="password" id="register-password" placeholder="••••••••" required>
                     </div>
+                    <div class="input-group">
+                        <label><i class="fas fa-home"></i> Billing Address</label>
+                        <input type="text" id="register-address" placeholder="123 Main St, New York, NY" required>
+                    </div>
                     <button id="register-submit" class="primary-btn">Create Account</button>
                 </div>
             </div>
@@ -86,15 +90,19 @@
 
                     <!-- 规则设置 -->
                     <div class="glass-card rules-card">
-                        <h3>Spending Rules</h3>
+                        <h3>Spending Rules & Virtual Cards</h3>
                         <div class="input-group">
                             <label>Max Daily Spending ($)</label>
                             <div class="input-with-btn">
                                 <input type="number" id="daily-limit-input" value="1000.00">
                                 <button id="save-limit-btn" class="mini-btn">Save</button>
                             </div>
-                            <p class="hint">Gateway will block requests exceeding this daily total.</p>
                         </div>
+                        <div class="input-group" style="flex-direction:row; align-items:center; justify-content:space-between; margin-top: 1rem;">
+                            <label for="vcard-toggle" style="margin:0; font-weight:600;">Enable Virtual Cards</label>
+                            <input type="checkbox" id="vcard-toggle" style="width:auto; height: 1.5rem; accent-color: var(--primary);">
+                        </div>
+                        <p class="hint">When enabled, successful transactions will issue a masked virtual card for privacy.</p>
                     </div>
 
                     <!-- 白名单管理 -->
@@ -128,6 +136,7 @@
                                         <th>Transaction ID</th>
                                         <th>Order ID</th>
                                         <th>Failed Reason</th>
+                                        <th>Virtual Card</th>
                                         <th>On-chain Hash</th>
                                     </tr>
                                     <tr class="filter-row">
@@ -146,6 +155,8 @@
                                         <th><input type="text" class="table-filter" data-col="order_id"
                                                 placeholder="Filter..."></th>
                                         <th><input type="text" class="table-filter" data-col="failed_reason"
+                                                placeholder="Filter..."></th>
+                                        <th><input type="text" class="table-filter" data-col="virtual_card_number"
                                                 placeholder="Filter..."></th>
                                         <th><input type="text" class="table-filter" data-col="onchain_hash"
                                                 placeholder="Filter..."></th>
