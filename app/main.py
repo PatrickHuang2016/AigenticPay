@@ -330,8 +330,11 @@ async def process_payment(
         billing_addr = None
 
         if user.virtual_card_enabled:
+            # To support strict 10-minute expiration burn cards
+            from datetime import timedelta
             vcard_num = f"4111 {random.randint(1000, 9999)} {random.randint(1000, 9999)} {random.randint(1000, 9999)}"
-            exp_date = f"{datetime.now().month:02d}/{(datetime.now().year + 3) % 100:02d}"
+            expire_time = datetime.now() + timedelta(minutes=10)
+            exp_date = expire_time.strftime("%Y-%m-%d %H:%M:%S")
             cvv = f"{random.randint(100, 999):03d}"
             billing_addr = user.address
 
