@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Category Limits | AigenticPay</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .mcc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        .mcc-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .mcc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .mcc-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .mcc-code {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            background: rgba(255,255,255,0.1);
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+        }
+        .input-with-btn {
+            display: flex;
+            gap: 0.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.25rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .input-with-btn input {
+            background: transparent;
+            border: none;
+            padding: 0.5rem;
+            flex: 1;
+            font-size: 1rem;
+            min-width: 0;
+        }
+        .input-with-btn input:focus {
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <section class="page active">
+            <nav class="navbar">
+                <div class="nav-brand" style="cursor: pointer; display: flex; align-items: center;" onclick="window.location.href='index.html'">
+                    <i class="fas fa-arrow-left"></i>
+                    <span style="margin-left: 0.8rem;">Back to Dashboard</span>
+                </div>
+            </nav>
+            <main class="dashboard-content" style="max-width: 1000px; margin: 0 auto; padding: 2rem;">
+                <div class="glass-card full-width">
+                    <h3><i class="fas fa-tags"></i> Merchant Category Limits</h3>
+                    <p class="hint" style="margin-bottom: 2rem;">
+                        If a payment is not recognized in your whitelist, it will fall back to these category limits.
+                    </p>
+                    <div id="mcc-container" class="mcc-grid">
+                        <!-- Dynamic list of MCCs will be loaded here -->
+                        <p style="color: var(--text-dim);"><i class="fas fa-spinner fa-spin"></i> Loading categories...</p>
+                    </div>
+                </div>
+
+                <div class="glass-card full-width" style="margin-top: 2rem;">
+                    <h3><i class="fas fa-history"></i> Limit Audit Log</h3>
+                    <p class="hint" style="margin-bottom: 1rem;">
+                        Track when your category spending limits were changed.
+                    </p>
+                    <div class="table-container">
+                        <table id="mcc-logs-table">
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>Category Code</th>
+                                    <th>Previous Limit</th>
+                                    <th>New Limit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Dynamic logs here -->
+                                <tr>
+                                    <td colspan="4" style="text-align:center; color: var(--text-dim);"><i class="fas fa-spinner fa-spin"></i> Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </section>
+    </div>
+    <script src="js/mcc.js"></script>
+</body>
+</html>

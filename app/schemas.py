@@ -50,6 +50,35 @@ class WhitelistItem(WhitelistItemBase):
     class Config:
         from_attributes = True
 
+# --- MCC 相关 ---
+
+class UserMCCBase(BaseModel):
+    mcc_code: str
+    description: str
+    limit: float
+    currency: str = "USD"
+
+class UserMCCUpdate(BaseModel):
+    limit: float
+
+class UserMCC(UserMCCBase):
+    id: int
+    user_id: int
+
+    class Config:
+        from_attributes = True
+
+class LimitChangeLog(BaseModel):
+    id: int
+    mcc_code: str
+    old_limit: float
+    new_limit: float
+    currency: str
+    changed_at: datetime
+
+    class Config:
+        from_attributes = True
+
 # --- 交易与支付相关 ---
 
 class TransactionBase(BaseModel):

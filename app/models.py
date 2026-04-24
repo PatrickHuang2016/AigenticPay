@@ -28,6 +28,7 @@ class User(Base):
     # 关系映射
     whitelist = relationship("WhitelistItem", back_populates="owner", cascade="all, delete-orphan")
     transactions = relationship("Transaction", back_populates="owner")
+    mccs = relationship("UserMCC", back_populates="owner", cascade="all, delete-orphan")
 
 class WhitelistItem(Base):
     """Merchant whitelist model with per-transaction limits."""
@@ -39,6 +40,31 @@ class WhitelistItem(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
 
     owner = relationship("User", back_populates="whitelist")
+
+class UserMCC(Base):
+    """用户MCC消费上限模型。"""
+    __tablename__ = "user_mccs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    mcc_code = Column(String, index=True, nullable=False)
+    description = Column(String, nullable=False)
+    limit = Column(Float, nullable=False)
+    currency = Column(String, default="USD")
+
+    owner = relationship("User", back_populates="mccs")
+
+class LimitChangeLog(Base):
+    """记录用户更改限额的历史轨迹。"""
+    __tablename__ = "limit_change_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    mcc_code = Column(String, index=True, nullable=False)
+    old_limit = Column(Float, nullable=False)
+    new_limit = Column(Float, nullable=False)
+    currency = Column(String, default="USD")
+    changed_at = Column(DateTime, default=datetime.utcnow)
 
 class Transaction(Base):
     """交易记录模型。"""

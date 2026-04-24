@@ -101,6 +101,20 @@ async def register_user(user: schemas.UserCreate, db: Session = Depends(get_db))
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+
+    # Initialize default MCC spending limits
+    default_mccs = [
+        ("5411", "Grocery Stores", 200.0),
+        ("5812", "Restaurants", 100.0),
+        ("5814", "Fast Food", 50.0),
+        ("5541", "Gas Stations", 100.0),
+        ("4121", "Ride Shares", 50.0),
+        ("5311", "Retail Stores", 300.0)
+    ]
+    for code, desc, limit in default_mccs:
+        db.add(models.UserMCC(user_id=new_user.id, mcc_code=code, description=desc, limit=round(limit, 2), currency="USD"))
+    db.commit()
+
     return new_user
 
 # --- 用户管理接口 (需要认证) ---
@@ -113,15 +127,31 @@ async def read_users_me(current_user: models.User = Depends(auth.get_current_use
 @app.put("/api/rules", response_model=schemas.User, tags=["Payment Rules"])
 async def update_rules(
     rules: schemas.UserUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
     """更新支付规则（如日限额）。"""
+    updates = {}
     if rules.daily_limit is not None:
         current_user.daily_limit = rules.daily_limit
+        updates["daily_limit"] = rules.daily_limit
     if rules.virtual_card_enabled is not None:
         current_user.virtual_card_enabled = rules.virtual_card_enabled
+        updates["virtual_card_enabled"] = rules.virtual_card_enabled
+        
     db.commit()
+    
+    if updates:
+        background_tasks.add_task(
+            perform_onchain_audit,
+            current_user.email,
+            {
+                "type": "update_global_rules",
+                "updates": updates,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
     return current_user
     
 @app.get("/api/whitelist", response_model=List[schemas.WhitelistItem], tags=["Payment Rules"])
@@ -135,6 +165,7 @@ async def get_whitelist(
 @app.post("/api/whitelist", response_model=schemas.WhitelistItem, tags=["Payment Rules"])
 async def add_to_whitelist(
     item: schemas.WhitelistItemCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
@@ -156,6 +187,16 @@ async def add_to_whitelist(
             existing.max_per_transaction = item.max_per_transaction
             db.commit()
             db.refresh(existing)
+            background_tasks.add_task(
+                perform_onchain_audit,
+                current_user.email,
+                {
+                    "type": "update_whitelist",
+                    "merchant_name": item.merchant_name,
+                    "new_max_per_transaction": item.max_per_transaction,
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+            )
             return existing
         else:
             raise HTTPException(
@@ -183,11 +224,23 @@ async def add_to_whitelist(
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
+    
+    background_tasks.add_task(
+        perform_onchain_audit,
+        current_user.email,
+        {
+            "type": "add_to_whitelist",
+            "merchant_name": item.merchant_name,
+            "max_per_transaction": item.max_per_transaction,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    )
     return db_item
 
 @app.delete("/api/whitelist/{item_id}", tags=["Payment Rules"])
 async def remove_from_whitelist(
     item_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
@@ -198,8 +251,18 @@ async def remove_from_whitelist(
     ).first()
     if not item:
         raise HTTPException(status_code=404, detail="Whitelist item not found")
+    merchant_name = item.merchant_name
     db.delete(item)
     db.commit()
+    background_tasks.add_task(
+        perform_onchain_audit,
+        current_user.email,
+        {
+            "type": "remove_from_whitelist",
+            "merchant_name": merchant_name,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    )
     return {"message": "Merchant removed from whitelist"}
 
 @app.post("/api/deposit", response_model=schemas.User, tags=["Wallet & Transactions"])
@@ -245,6 +308,70 @@ async def get_transactions(
         models.Transaction.user_id == current_user.id
     ).order_by(models.Transaction.timestamp.desc()).all()
 
+@app.get("/api/mcc", response_model=List[schemas.UserMCC], tags=["Payment Rules"])
+async def get_mccs(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """获取用户的MCC消费上限配置。"""
+    return current_user.mccs
+
+@app.put("/api/mcc/{mcc_code}", response_model=schemas.UserMCC, tags=["Payment Rules"])
+async def update_mcc_limit(
+    mcc_code: str,
+    rules: schemas.UserMCCUpdate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """更新特定MCC的消费上限。"""
+    mcc = db.query(models.UserMCC).filter(
+        models.UserMCC.user_id == current_user.id,
+        models.UserMCC.mcc_code == mcc_code
+    ).first()
+    if not mcc:
+        raise HTTPException(status_code=404, detail="MCC rule not found")
+    
+    old_limit = mcc.limit
+    new_limit = round(rules.limit, 2)
+    mcc.limit = new_limit
+    
+    # 记录该次更改
+    log_entry = models.LimitChangeLog(
+        user_id=current_user.id,
+        mcc_code=mcc_code,
+        old_limit=old_limit,
+        new_limit=new_limit,
+        currency=mcc.currency
+    )
+    db.add(log_entry)
+    db.commit()
+    db.refresh(mcc)
+    
+    background_tasks.add_task(
+        perform_onchain_audit,
+        current_user.email,
+        {
+            "type": "update_mcc_limit",
+            "mcc_code": mcc_code,
+            "old_limit": old_limit,
+            "new_limit": new_limit,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    )
+    
+    return mcc
+
+@app.get("/api/mcc/logs", response_model=List[schemas.LimitChangeLog], tags=["Payment Rules"])
+async def get_mcc_logs(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """获取用户修改MCC额度的历史记录。"""
+    return db.query(models.LimitChangeLog).filter(
+        models.LimitChangeLog.user_id == current_user.id
+    ).order_by(models.LimitChangeLog.changed_at.desc()).all()
+
 # --- 核心支付网关接口 (不对外直接暴露 Token，通过 identity 识别) ---
 
 @app.post("/api/pay", response_model=schemas.PaymentResponse, tags=["Payment Gateway"])
@@ -283,23 +410,50 @@ async def process_payment(
         db.refresh(new_tx)
         return new_tx
 
+    # Helper function to guess MCC
+    def guess_mcc(name: str) -> str:
+        name = name.lower()
+        if any(k in name for k in ["walmart", "whole foods", "target", "kroger", "safeway", "wegmans"]): return "5411"
+        if any(k in name for k in ["kfc", "mcdonald", "burger king", "subway", "wendy", "taco bell", "chipotle"]): return "5814"
+        if any(k in name for k in ["restaurant", "cafe", "bistro", "steakhouse", "diner", "pizza", "sushi"]): return "5812"
+        if any(k in name for k in ["shell", "chevron", "exxon", "mobil", "bp", "sunoco"]): return "5541"
+        if any(k in name for k in ["uber", "lyft", "taxi", "cab"]): return "4121"
+        if any(k in name for k in ["nike", "adidas", "zara", "macys", "nordstrom", "best buy", "apple"]): return "5311"
+        return None
+
     # 3. Rule Check - Whitelist & Per-transaction limit
     whitelist_entry = db.query(models.WhitelistItem).filter(
         models.WhitelistItem.user_id == user.id,
         models.WhitelistItem.merchant_name == payment.merchant_name
     ).first()
     
-    if not whitelist_entry:
-        log_tx("failed", f"Merchant '{payment.merchant_name}' is not in whitelist", failed_reason="Merchant not whitelisted")
-        return schemas.PaymentResponse(status="error", message=f"Merchant '{payment.merchant_name}' is not in your whitelist", request_id=req_id)
+    if whitelist_entry:
+        if payment.amount > whitelist_entry.max_per_transaction:
+            log_tx("failed", f"Amount exceeds individual limit for '{payment.merchant_name}'", failed_reason=f"Exceeds merchant limit (${whitelist_entry.max_per_transaction})")
+            return schemas.PaymentResponse(
+                status="error", 
+                message=f"Amount exceeds individual limit for '{payment.merchant_name}' (Max: ${whitelist_entry.max_per_transaction})",
+                request_id=req_id
+            )
+    else:
+        # Check MCC if not in whitelist
+        mcc_code = guess_mcc(payment.merchant_name)
+        if not mcc_code:
+            log_tx("failed", f"Merchant '{payment.merchant_name}' is not recognized and not in whitelist", failed_reason="Unrecognized Merchant, not whitelisted")
+            return schemas.PaymentResponse(status="error", message=f"Merchant '{payment.merchant_name}' is not in your whitelist and Category could not be inferred", request_id=req_id)
+        
+        mcc_entry = db.query(models.UserMCC).filter(
+            models.UserMCC.user_id == user.id,
+            models.UserMCC.mcc_code == mcc_code
+        ).first()
 
-    if payment.amount > whitelist_entry.max_per_transaction:
-        log_tx("failed", f"Amount exceeds individual limit for '{payment.merchant_name}'", failed_reason=f"Exceeds merchant limit (${whitelist_entry.max_per_transaction})")
-        return schemas.PaymentResponse(
-            status="error", 
-            message=f"Amount exceeds individual limit for '{payment.merchant_name}' (Max: ${whitelist_entry.max_per_transaction})",
-            request_id=req_id
-        )
+        if not mcc_entry:
+             log_tx("failed", f"No spending limit configured for MCC {mcc_code}", failed_reason=f"MCC {mcc_code} not configured")
+             return schemas.PaymentResponse(status="error", message=f"No spending limit configured for category {mcc_code}", request_id=req_id)
+
+        if payment.amount > mcc_entry.limit:
+             log_tx("failed", f"Amount exceeds limit for category {mcc_entry.description} (MCC {mcc_code})", failed_reason=f"Exceeds MCC limit (${mcc_entry.limit})")
+             return schemas.PaymentResponse(status="error", message=f"Amount exceeds limit for category {mcc_entry.description} (Max: ${mcc_entry.limit})", request_id=req_id)
 
     # 4. Rule Check - Daily Limit
     today = date.today()
