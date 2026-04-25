@@ -161,6 +161,8 @@ document.addEventListener('DOMContentLoaded', () => {
         await loadUserData();
         loadWhitelist();
         loadTransactions();
+        loadMccs();
+        loadMccLogs();
     }
 
     async function loadUserData() {
@@ -423,4 +425,125 @@ document.addEventListener('DOMContentLoaded', () => {
             renderTransactions();
         });
     });
+
+    // --- MCC Management Logic ---
+    async function loadMccs() {
+        const mccContainer = document.getElementById("mcc-container");
+        if (!mccContainer) return;
+        try {
+            const res = await apiFetch("/api/mcc");
+            if (res.ok) {
+                const mccs = await res.json();
+                renderMccs(mccs);
+            }
+        } catch (e) {
+            console.error("Failed to load MCCs:", e);
+        }
+    }
+
+    function renderMccs(mccs) {
+        const mccContainer = document.getElementById("mcc-container");
+        if (!mccs || mccs.length === 0) {
+            mccContainer.innerHTML = '<p class="hint">No category limits found.</p>';
+            return;
+        }
+
+        mccContainer.innerHTML = "";
+        mccs.forEach(mcc => {
+            const card = document.createElement("div");
+            card.style.background = "rgba(255, 255, 255, 0.03)";
+            card.style.border = "1px solid rgba(255, 255, 255, 0.1)";
+            card.style.borderRadius = "12px";
+            card.style.padding = "1.5rem";
+            card.style.display = "flex";
+            card.style.flexDirection = "column";
+            card.style.gap = "1rem";
+            
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 600; font-size: 1.1rem;">${mcc.description}</span>
+                    <span style="font-size: 0.8rem; color: var(--text-dim); background: rgba(255,255,255,0.1); padding: 0.2rem 0.6rem; border-radius: 12px;">MCC: ${mcc.mcc_code}</span>
+                </div>
+                <div class="input-group">
+                    <label>Limit per Transaction (${mcc.currency || 'USD'})</label>
+                    <div style="display: flex; gap: 0.5rem; background: rgba(0, 0, 0, 0.2); padding: 0.25rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                        <input type="number" id="mcc-input-${mcc.mcc_code}" value="${mcc.limit.toFixed(2)}" step="0.01" style="background: transparent; border: none; padding: 0.5rem; flex: 1; font-size: 1rem; color: white; min-width: 0; outline: none;">
+                        <button class="mini-btn save-mcc-btn" data-code="${mcc.mcc_code}">Save</button>
+                    </div>
+                </div>
+            `;
+            mccContainer.appendChild(card);
+        });
+
+        document.querySelectorAll(".save-mcc-btn").forEach(btn => {
+            btn.addEventListener("click", async (e) => {
+                const code = e.target.getAttribute("data-code");
+                const input = document.getElementById(`mcc-input-${code}`);
+                const limit = parseFloat(input.value);
+                
+                if (isNaN(limit) || limit < 0) return alert("Valid amount required.");
+
+                const originalText = btn.textContent;
+                btn.textContent = "Saving...";
+                btn.disabled = true;
+
+                const res = await apiFetch(`/api/mcc/${code}`, {
+                    method: "PUT",
+                    body: JSON.stringify({ limit })
+                });
+                
+                if (res.ok) {
+                    btn.textContent = "Saved";
+                    btn.style.background = "var(--success)";
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.style.background = "";
+                        btn.disabled = false;
+                    }, 2000);
+                    loadMccLogs();
+                } else {
+                    const err = await res.json();
+                    alert("Error: " + (err.detail || "Update failed"));
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                }
+            });
+        });
+    }
+
+    async function loadMccLogs() {
+        const tbody = document.querySelector("#mcc-logs-table tbody");
+        if (!tbody) return;
+        try {
+            const res = await apiFetch("/api/mcc/logs");
+            if (res.ok) {
+                const logs = await res.json();
+                renderMccLogs(logs);
+            }
+        } catch (e) {
+            console.error("Failed to load MCC logs:", e);
+        }
+    }
+
+    function renderMccLogs(logs) {
+        const tbody = document.querySelector("#mcc-logs-table tbody");
+        if (!logs || logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--text-dim);">No limit changes recorded yet.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = "";
+        logs.forEach(log => {
+            const tr = document.createElement("tr");
+            const date = new Date(log.changed_at).toLocaleString();
+            tr.innerHTML = `
+                <td>${date}</td>
+                <td><span style="font-size: 0.8rem; color: var(--text-dim); background: rgba(255,255,255,0.1); padding: 0.2rem 0.6rem; border-radius: 12px;">${log.mcc_code}</span></td>
+                <td>${log.old_limit.toFixed(2)} ${log.currency}</td>
+                <td style="color: var(--success); font-weight: 600;">${log.new_limit.toFixed(2)} ${log.currency}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
 });

@@ -103,9 +103,6 @@
                             <input type="checkbox" id="vcard-toggle" style="width:auto; height: 1.5rem; accent-color: var(--primary);">
                         </div>
                         <p class="hint">When enabled, successful transactions will issue a masked virtual card for privacy.</p>
-                        <div style="margin-top: 1.5rem; text-align: center;">
-                            <a href="mcc.html" class="secondary-btn" style="display: inline-block; width: 100%; text-decoration: none;"><i class="fas fa-tags"></i> Manage Category Limits</a>
-                        </div>
                     </div>
 
                     <!-- 白名单管理 -->
@@ -121,6 +118,31 @@
                         </div>
                         <div id="whitelist-tags" class="tag-container">
                             <!-- Dynamic Load -->
+                        </div>
+                    </div>
+
+                    <!-- 商家类别限额管理 -->
+                    <div class="glass-card full-width" style="margin-top: 2rem;">
+                        <h3>Merchant Category Limits</h3>
+                        <p class="hint" style="margin-bottom: 1.5rem;">If a payment is not recognized in your whitelist, it falls back to these category limits.</p>
+                        <div id="mcc-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+                            <!-- Dynamic Load -->
+                        </div>
+                        <h4 style="margin-top: 2rem; margin-bottom: 1rem;"><i class="fas fa-history"></i> Category Limit Audit Log</h4>
+                        <div class="table-container">
+                            <table id="mcc-logs-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Category Code</th>
+                                        <th>Previous Limit</th>
+                                        <th>New Limit</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamic Load -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
