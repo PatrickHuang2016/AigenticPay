@@ -4,14 +4,15 @@ import sqlite3
 from app.database import SessionLocal, engine
 from app.models import User, UserMCC, Base
 
-# Fix SQLite missing columns
+from sqlalchemy import text
+
+# Fix missing columns (Works for both SQLite and PostgreSQL)
 try:
-    conn = sqlite3.connect("aigentic_pay_prod.db")
-    cursor = conn.cursor()
-    cursor.execute("ALTER TABLE user_mccs ADD COLUMN currency VARCHAR DEFAULT 'USD'")
-    cursor.execute("ALTER TABLE limit_change_logs ADD COLUMN currency VARCHAR DEFAULT 'USD'")
-    conn.commit()
-    conn.close()
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE user_mccs ADD COLUMN currency VARCHAR DEFAULT 'USD'"))
+        conn.execute(text("ALTER TABLE limit_change_logs ADD COLUMN currency VARCHAR DEFAULT 'USD'"))
+        conn.commit()
+        print("Schema altered successfully.")
 except Exception as e:
     print("Columns may already exist or error:", e)
 

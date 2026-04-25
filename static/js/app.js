@@ -434,6 +434,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (res.ok) {
                 const mccs = await res.json();
                 renderMccs(mccs);
+            } else {
+                console.warn("Failed to fetch MCCs, status:", res.status);
+                mccContainer.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--danger);">Error loading data. Please check backend.</td></tr>';
             }
         } catch (e) {
             console.error("Failed to load MCCs:", e);
