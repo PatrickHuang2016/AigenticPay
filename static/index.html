@@ -125,21 +125,17 @@
                     <div class="glass-card full-width" style="margin-top: 2rem;">
                         <h3>Merchant Category Limits</h3>
                         <p class="hint" style="margin-bottom: 1.5rem;">If a payment is not recognized in your whitelist, it falls back to these category limits.</p>
-                        <div id="mcc-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
-                            <!-- Dynamic Load -->
-                        </div>
-                        <h4 style="margin-top: 2rem; margin-bottom: 1rem;"><i class="fas fa-history"></i> Category Limit Audit Log</h4>
                         <div class="table-container">
-                            <table id="mcc-logs-table">
+                            <table id="mcc-table">
                                 <thead>
                                     <tr>
-                                        <th>Date & Time</th>
-                                        <th>Category Code</th>
-                                        <th>Previous Limit</th>
-                                        <th>New Limit</th>
+                                        <th>Category</th>
+                                        <th>MCC Code</th>
+                                        <th>Current Limit</th>
+                                        <th>Action</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="mcc-container">
                                     <!-- Dynamic Load -->
                                 </tbody>
                             </table>
