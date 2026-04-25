@@ -12,7 +12,13 @@ This skill empowers you (the Assistant) to act as an autonomous agent that can p
 When the user asks you to "buy [Item]" or perform a similar purchasing action, follow these exact steps:
 
 ### 1. Evaluate and Determine Details
-Determine the likely real-world price of the item and the merchant to buy it from (e.g., "Apple Store", "Amazon", "Steam"). You can estimate the price or make a realistic guess if not provided.
+Determine the likely real-world price of the item and the appropriate merchant to buy it from. When selecting a merchant, try to use real-world names that align with typical Merchant Category Codes (MCC) to test the user's spending limits. For example:
+- **Retail**: "Nike", "Apple", "Best Buy"
+- **Grocery**: "Whole Foods", "Walmart"
+- **Fast Food / Restaurants**: "McDonalds", "Starbucks"
+- **Ride Shares**: "Uber", "Lyft"
+- **Other**: "Coursera", "Steam", "Amazon" (These will fall into the default 'Other' category limit of $50)
+You can estimate the price or make a realistic guess if not provided.
 
 ### 2. Confirm the User Identity (Email)
 Ask the user for their registered `email` if you don't already have it in context, as the payment gateway requires an identity to process their rules and balance.

@@ -357,11 +357,15 @@ document.addEventListener('DOMContentLoaded', () => {
         addMessage(chatInput.value.trim(), 'user');
         chatInput.value = '';
 
-        // Product Registry
+        // Product Registry updated for MCC limits demo
         const products = [
-            { keywords: ["air force", "nike"], name: "Nike Air Force 1", price: 200, merchant: "Amazon" },
-            { keywords: ["iphone", "17 pro"], name: "iPhone 17 Pro", price: 2000, merchant: "Telus" },
-            { keywords: ["macbook", "mcbook"], name: "MacBook Pro", price: 1000, merchant: "Amazon" }
+            { keywords: ["nike", "air force"], name: "Nike Air Force 1", price: 150, merchant: "Nike" }, // MCC 5311 (Retail, limit 300) -> Pass
+            { keywords: ["macbook", "apple"], name: "MacBook Pro", price: 1500, merchant: "Apple" }, // MCC 5311 (Retail, limit 300) -> Fail
+            { keywords: ["grocery", "food"], name: "Weekly Groceries", price: 180, merchant: "Whole Foods" }, // MCC 5411 (Grocery, limit 200) -> Pass
+            { keywords: ["expensive grocery", "caviar"], name: "Luxury Groceries", price: 250, merchant: "Whole Foods" }, // MCC 5411 (Grocery, limit 200) -> Fail
+            { keywords: ["ride", "uber"], name: "City Ride", price: 30, merchant: "Uber" }, // MCC 4121 (Ride, limit 50) -> Pass
+            { keywords: ["burger", "mcdonald"], name: "Combo Meal", price: 15, merchant: "McDonalds" }, // MCC 5814 (Fast Food, limit 50) -> Pass
+            { keywords: ["course", "coursera"], name: "Online Course", price: 99, merchant: "Coursera" } // Unrecognized -> MCC 0000 (Other, limit 50) -> Fail
         ];
 
         const product = products.find(p => p.keywords.some(k => input.includes(k)));
@@ -400,7 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }, 1500);
                 } else {
-                    addMessage("I couldn't identify a specific product. Try 'Buy iPhone 17 Pro' or 'Get Nike Air Force'.", "bot");
+                    addMessage("I couldn't identify a specific product. Try 'Buy MacBook', 'Buy Nike shoes', 'Order Uber', 'Buy Groceries', or 'Buy online course'.", "bot");
                 }
             }, 1800);
         }, 600);

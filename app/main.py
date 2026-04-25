@@ -109,7 +109,8 @@ async def register_user(user: schemas.UserCreate, db: Session = Depends(get_db))
         ("5814", "Fast Food", 50.0),
         ("5541", "Gas Stations", 100.0),
         ("4121", "Ride Shares", 50.0),
-        ("5311", "Retail Stores", 300.0)
+        ("5311", "Retail Stores", 300.0),
+        ("0000", "Other", 50.0)
     ]
     for code, desc, limit in default_mccs:
         db.add(models.UserMCC(user_id=new_user.id, mcc_code=code, description=desc, limit=round(limit, 2), currency="USD"))
@@ -419,7 +420,7 @@ async def process_payment(
         if any(k in name for k in ["shell", "chevron", "exxon", "mobil", "bp", "sunoco"]): return "5541"
         if any(k in name for k in ["uber", "lyft", "taxi", "cab"]): return "4121"
         if any(k in name for k in ["nike", "adidas", "zara", "macys", "nordstrom", "best buy", "apple"]): return "5311"
-        return None
+        return "0000"
 
     # 3. Rule Check - Whitelist & Per-transaction limit
     whitelist_entry = db.query(models.WhitelistItem).filter(
@@ -438,9 +439,6 @@ async def process_payment(
     else:
         # Check MCC if not in whitelist
         mcc_code = guess_mcc(payment.merchant_name)
-        if not mcc_code:
-            log_tx("failed", f"Merchant '{payment.merchant_name}' is not recognized and not in whitelist", failed_reason="Unrecognized Merchant, not whitelisted")
-            return schemas.PaymentResponse(status="error", message=f"Merchant '{payment.merchant_name}' is not in your whitelist and Category could not be inferred", request_id=req_id)
         
         mcc_entry = db.query(models.UserMCC).filter(
             models.UserMCC.user_id == user.id,

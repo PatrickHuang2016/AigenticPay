@@ -28,23 +28,27 @@ def fix_mccs():
         ("5814", "Fast Food", 50.0),
         ("5541", "Gas Stations", 100.0),
         ("4121", "Ride Shares", 50.0),
-        ("5311", "Retail Stores", 300.0)
+        ("5311", "Retail Stores", 300.0),
+        ("0000", "Other", 50.0)
     ]
     
     for user in users:
         existing_mccs = db.query(UserMCC).filter(UserMCC.user_id == user.id).all()
-        if not existing_mccs:
-            for code, desc, limit in default_mccs:
+        existing_codes = {mcc.mcc_code for mcc in existing_mccs}
+        
+        added_any = False
+        for code, desc, limit in default_mccs:
+            if code not in existing_codes:
                 db.add(UserMCC(user_id=user.id, mcc_code=code, description=desc, limit=round(limit, 2), currency="USD"))
-            print(f"Added default MCCs for user: {user.email}")
+                added_any = True
+                
+        if added_any:
+            print(f"Added missing default MCCs for user: {user.email}")
         else:
-            print(f"User {user.email} already has MCCs.")
+            print(f"User {user.email} already has all default MCCs.")
             
     db.commit()
     db.close()
-
-if __name__ == "__main__":
-    fix_mccs()
 
 if __name__ == "__main__":
     fix_mccs()
